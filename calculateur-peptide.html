@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculateur Dosage Peptide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e14;
+      --surface: #111820;
+      --surface2: #16202c;
+      --border: #1e2d3d;
+      --accent: #00d4ff;
+      --accent2: #0af0a0;
+      --accent-dim: rgba(0, 212, 255, 0.12);
+      --text: #e8f0f8;
+      --text-muted: #5a7a9a;
+      --text-dim: #3a5570;
+      --danger: #ff4d6d;
+      --warn: #ffa040;
+      --mono: 'Space Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 60px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+      padding-top: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,212,255,0.2);
+      padding: 4px 12px;
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* Peptide Grid */
+    .peptide-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .peptide-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 10px 6px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .peptide-btn:hover {
+      border-color: rgba(0,212,255,0.4);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .peptide-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 12px rgba(0,212,255,0.15);
+    }
+
+    .peptide-btn .sub {
+      display: block;
+      font-family: var(--sans);
+      font-size: 9px;
+      font-weight: 400;
+      color: inherit;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    /* Custom peptide input */
+    .custom-peptide-row {
+      display: none;
+      margin-top: 12px;
+      gap: 8px;
+      align-items: center;
+    }
+    .custom-peptide-row.visible {
+      display: flex;
+    }
+    .custom-peptide-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .custom-peptide-row input:focus {
+      border-color: var(--accent);
+    }
+    .custom-peptide-row input::placeholder {
+      color: var(--text-dim);
+    }
+
+    /* Input rows */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    label .hint {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 16px;
+      padding: 12px 60px 12px 14px;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+    }
+
+    .unit-tag {
+      position: absolute;
+      right: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    /* Unit toggle */
+    .unit-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .unit-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .unit-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Syringe selector */
+    .syringe-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .syringe-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 12px 6px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+
+    .syringe-btn .sub {
+      display: block;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 400;
+      margin-top: 3px;
+      opacity: 0.7;
+    }
+
+    .syringe-btn:hover {
+      border-color: rgba(10,240,160,0.4);
+      color: var(--accent2);
+    }
+
+    .syringe-btn.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(10,240,160,0.08);
+      box-shadow: 0 0 12px rgba(10,240,160,0.1);
+    }
+
+    /* Result */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .result-card.visible {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+      opacity: 0.5;
+    }
+
+    .result-card { position: relative; overflow: hidden; }
+
+    .result-instruction {
+      background: rgba(10,240,160,0.07);
+      border: 1px solid rgba(10,240,160,0.25);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .result-instruction strong {
+      font-family: var(--mono);
+      font-size: 22px;
+      color: var(--accent2);
+    }
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .result-block {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .result-big {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent2);
+      line-height: 1;
+    }
+    .result-big.secondary {
+      color: var(--accent);
+      font-size: 28px;
+    }
+    .result-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      font-family: var(--mono);
+    }
+    .result-sep {
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .syringe-visual { margin-bottom: 16px; }
+    .syringe-track {
+      position: relative;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      height: 14px;
+      overflow: hidden;
+    }
+    .syringe-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 4px;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 100%;
+      width: 0%;
+    }
+    .syringe-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 5px;
+    }
+    .recap-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 2;
+    }
+    .recap-box .hl { color: var(--accent); }
+    .recap-box .hl2 { color: var(--accent2); }
+
+    .result-main {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .result-value {
+      font-family: var(--mono);
+      font-size: 52px;
+      font-weight: 700;
+      color: var(--accent2);
+      line-height: 1;
+    }
+
+    .result-unit {
+      font-family: var(--mono);
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+
+    .result-sub {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .result-sub span {
+      color: var(--accent);
+    }
+
+    /* Visual syringe bar */
+    .syringe-bar-wrap {
+      margin-top: 18px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      height: 10px;
+      position: relative;
+    }
+
+    .syringe-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 4px;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 100%;
+    }
+
+    .syringe-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* Warning */
+    .warning-box {
+      background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.3);
+      border-radius: 5px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 14px;
+      display: none;
+      font-family: var(--mono);
+    }
+
+    .warning-box.visible { display: block; }
+
+    /* Formula display */
+    .formula-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px 14px;
+      margin-top: 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .formula-box .eq {
+      color: var(--text);
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.6;
+      padding: 0 8px;
+    }
+
+    .disclaimer a {
+      color: var(--text-muted);
+    }
+
+    /* Reset btn */
+    .reset-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      padding: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .reset-btn:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0 16px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">⚗ RESEARCH USE ONLY</div>
+    <h1>Calculateur<br><span>Dosage Peptide</span></h1>
+    <p class="subtitle">Volume de prélèvement en unités seringue.<br>Usage laboratoire exclusivement.</p>
+  </header>
+
+  <!-- STEP 1 : Peptide -->
+  <div class="card">
+    <div class="section-label">01 — Peptide</div>
+    <div class="peptide-grid" id="peptideGrid">
+      <button class="peptide-btn" data-peptide="Retatrutide" data-flacon="10" data-eau="2" onclick="selectPeptide(this)">
+        RETA<span class="sub">10 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="BPC-157" data-flacon="5" data-eau="1" onclick="selectPeptide(this)">
+        BPC-157<span class="sub">5 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="TB-500" data-flacon="5" data-eau="1" onclick="selectPeptide(this)">
+        TB-500<span class="sub">5 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="GHK-Cu" data-flacon="5" data-eau="1" onclick="selectPeptide(this)">
+        GHK-Cu<span class="sub">5 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="Melanotan II" data-flacon="10" data-eau="2" onclick="selectPeptide(this)">
+        MT-II<span class="sub">10 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="NAD+" data-flacon="100" data-eau="2" onclick="selectPeptide(this)">
+        NAD+<span class="sub">100 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="Selank" data-flacon="5" data-eau="1" onclick="selectPeptide(this)">
+        Selank<span class="sub">5 mg</span>
+      </button>
+      <button class="peptide-btn" data-peptide="Semax" data-flacon="5" data-eau="1" onclick="selectPeptide(this)">
+        Semax<span class="sub">5 mg</span>
+      </button>
+      <button class="peptide-btn autre-btn" data-peptide="autre" onclick="selectPeptide(this)">
+        AUTRE<span class="sub">manuel</span>
+      </button>
+    </div>
+
+    <div class="custom-peptide-row" id="customPeptideRow">
+      <input type="text" id="customPeptideName" placeholder="Nom du peptide (optionnel)" />
+    </div>
+  </div>
+
+  <!-- STEP 2 : Reconstitution -->
+  <div class="card">
+    <div class="section-label">02 — Reconstitution</div>
+
+    <div class="field">
+      <label>
+        Quantité dans le flacon
+        <span class="hint" id="flaconHint">—</span>
+      </label>
+      <div class="input-wrap">
+        <input type="number" id="flaconInput" min="0.1" step="0.1" placeholder="10" oninput="calculate()" />
+        <span class="unit-tag">mg</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>
+        Eau bactériostatique ajoutée
+        <span class="hint" id="eauHint">—</span>
+      </label>
+      <div class="input-wrap">
+        <input type="number" id="eauInput" min="0.1" step="0.1" placeholder="2" oninput="calculate()" />
+        <span class="unit-tag">mL</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 : Dose -->
+  <div class="card">
+    <div class="section-label">03 — Dose souhaitée</div>
+
+    <div class="unit-toggle">
+      <button class="unit-btn active" onclick="setUnit('mg', this)">mg</button>
+      <button class="unit-btn" onclick="setUnit('mcg', this)">mcg</button>
+    </div>
+
+    <div class="field">
+      <label>
+        Quantité à prélever
+        <span class="hint" id="doseHint">—</span>
+      </label>
+      <div class="input-wrap">
+        <input type="number" id="doseInput" min="0" step="0.01" placeholder="2" oninput="calculate()" />
+        <span class="unit-tag" id="doseUnitTag">mg</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 : Seringue -->
+  <div class="card">
+    <div class="section-label">04 — Seringue U-100</div>
+    <div class="syringe-grid">
+      <button class="syringe-btn" onclick="selectSyringe(30, this)">
+        0.3 mL<span class="sub">30 unités</span>
+      </button>
+      <button class="syringe-btn active" onclick="selectSyringe(50, this)">
+        0.5 mL<span class="sub">50 unités</span>
+      </button>
+      <button class="syringe-btn" onclick="selectSyringe(100, this)">
+        1.0 mL<span class="sub">100 unités</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-card" id="resultCard">
+    <div class="section-label">✓ Résultat — votre prélèvement</div>
+
+    <!-- Instruction principale -->
+    <div class="result-instruction" id="resultInstruction">
+      Tirez la seringue jusqu'à la graduation&nbsp;<strong id="resultUnitsInstr">—</strong>
+    </div>
+
+    <!-- Chiffres clés -->
+    <div class="result-row">
+      <div class="result-block">
+        <div class="result-big" id="resultUnits">—</div>
+        <div class="result-label">unités seringue</div>
+      </div>
+      <div class="result-sep">=</div>
+      <div class="result-block">
+        <div class="result-big secondary" id="resultML">—</div>
+        <div class="result-label">millilitres (mL)</div>
+      </div>
+    </div>
+
+    <!-- Barre visuelle -->
+    <div class="syringe-visual">
+      <div class="syringe-track">
+        <div class="syringe-fill" id="syringeFill"></div>
+        <div class="syringe-marker" id="syringeMarker"></div>
+      </div>
+      <div class="syringe-bar-label">
+        <span>0</span>
+        <span id="barLabel">50 unités</span>
+      </div>
+    </div>
+
+    <!-- Récap -->
+    <div class="recap-box" id="recapBox">—</div>
+
+    <div class="warning-box" id="warningBox">
+      ⚠ Le volume dépasse la capacité de la seringue sélectionnée. Choisissez une seringue plus grande ou divisez en plusieurs prélèvements.
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetAll()">↺ Réinitialiser</button>
+
+  <p class="disclaimer">
+    Outil destiné exclusivement à la recherche en laboratoire (in vitro).<br>
+    Aucune dose n'est recommandée. Non destiné à l'usage humain ou animal.
+  </p>
+
+</div>
+
+<script>
+  let currentUnit = 'mg';
+  let syringeMax = 50;
+  let selectedPeptide = null;
+
+  const peptides = {
+    'Retatrutide':  { flacon: 10, eau: 2 },
+    'BPC-157':      { flacon: 5,  eau: 1 },
+    'TB-500':       { flacon: 5,  eau: 1 },
+    'GHK-Cu':       { flacon: 5,  eau: 1 },
+    'Melanotan II': { flacon: 10, eau: 2 },
+    'NAD+':         { flacon: 100, eau: 2 },
+    'Selank':       { flacon: 5,  eau: 1 },
+    'Semax':        { flacon: 5,  eau: 1 },
+  };
+
+  function selectPeptide(btn) {
+    document.querySelectorAll('.peptide-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedPeptide = btn.dataset.peptide;
+
+    const customRow = document.getElementById('customPeptideRow');
+
+    if (selectedPeptide === 'autre') {
+      customRow.classList.add('visible');
+      document.getElementById('flaconHint').textContent = '—';
+      document.getElementById('eauHint').textContent = '—';
+      document.getElementById('flaconInput').value = '';
+      document.getElementById('eauInput').value = '';
+    } else {
+      customRow.classList.remove('visible');
+      const data = peptides[selectedPeptide];
+      document.getElementById('flaconInput').value = data.flacon;
+      document.getElementById('eauInput').value = data.eau;
+      document.getElementById('flaconHint').textContent = `défaut: ${data.flacon} mg`;
+      document.getElementById('eauHint').textContent = `défaut: ${data.eau} mL`;
+    }
+    calculate();
+  }
+
+  function selectSyringe(max, btn) {
+    document.querySelectorAll('.syringe-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    syringeMax = max;
+    document.getElementById('barLabel').textContent = `${max} unités max`;
+    calculate();
+  }
+
+  function setUnit(unit, btn) {
+    document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentUnit = unit;
+    document.getElementById('doseUnitTag').textContent = unit;
+    document.getElementById('doseHint').textContent = unit === 'mcg' ? '1 mg = 1000 mcg' : '—';
+    calculate();
+  }
+
+  function calculate() {
+    const flacon = parseFloat(document.getElementById('flaconInput').value);
+    const eau    = parseFloat(document.getElementById('eauInput').value);
+    let doseRaw  = parseFloat(document.getElementById('doseInput').value);
+
+    const resultCard = document.getElementById('resultCard');
+    const warningBox = document.getElementById('warningBox');
+
+    if (!flacon || !eau || !doseRaw || isNaN(flacon) || isNaN(eau) || isNaN(doseRaw)) {
+      resultCard.classList.remove('visible');
+      return;
+    }
+
+    // Convert mcg → mg
+    let doseMg = currentUnit === 'mcg' ? doseRaw / 1000 : doseRaw;
+
+    const concentration = flacon / eau;       // mg/mL
+    const volumeML      = doseMg / concentration; // mL
+    const units         = volumeML * 100;     // unités U-100
+
+    const unitsRounded = Math.round(units * 10) / 10;
+    const mlRounded    = Math.round(volumeML * 1000) / 1000;
+
+    const syringueLabel = syringeMax <= 30 ? '0.3 mL' : syringeMax <= 50 ? '0.5 mL' : '1.0 mL';
+
+    const peptideLabel = selectedPeptide && selectedPeptide !== 'autre'
+      ? selectedPeptide
+      : (document.getElementById('customPeptideName')?.value || 'peptide');
+
+    const doseLabel = currentUnit === 'mcg'
+      ? `${doseRaw} mcg`
+      : `${doseRaw} mg`;
+
+    // Instruction principale
+    document.getElementById('resultInstruction').innerHTML =
+      `Tirez la seringue jusqu'à la graduation&nbsp;<strong id="resultUnitsInstr">${unitsRounded}</strong>`;
+
+    // Blocs chiffres
+    document.getElementById('resultUnits').textContent = unitsRounded;
+    document.getElementById('resultML').textContent    = mlRounded;
+
+    // Barre
+    const pct = Math.min((units / syringeMax) * 100, 100);
+    const fill = document.getElementById('syringeFill');
+    fill.style.width = pct + '%';
+    document.getElementById('barLabel').textContent = `${syringeMax} unités`;
+
+    // Dépassement
+    if (units > syringeMax) {
+      warningBox.classList.add('visible');
+      fill.style.background = 'var(--danger)';
+    } else {
+      warningBox.classList.remove('visible');
+      fill.style.background = 'linear-gradient(90deg, var(--accent2), var(--accent))';
+    }
+
+    // Récap détaillé
+    document.getElementById('recapBox').innerHTML =
+      `Peptide&nbsp;: <span class="hl">${peptideLabel}</span><br>` +
+      `Flacon&nbsp;: <span class="hl">${flacon} mg</span> dans <span class="hl">${eau} mL</span> → concentration <span class="hl">${concentration.toFixed(2)} mg/mL</span><br>` +
+      `Dose souhaitée&nbsp;: <span class="hl">${doseLabel}</span><br>` +
+      `Seringue&nbsp;: <span class="hl">${syringueLabel}</span> (${syringeMax} unités max)<br>` +
+      `Calcul&nbsp;: (${doseMg} ÷ ${concentration.toFixed(2)}) × 100 = <span class="hl2">${unitsRounded} unités</span>`;
+
+    resultCard.classList.add('visible');
+  }
+
+  function resetAll() {
+    document.querySelectorAll('.peptide-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.syringe-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.syringe-btn:nth-child(2)').classList.add('active');
+    document.getElementById('flaconInput').value = '';
+    document.getElementById('eauInput').value = '';
+    document.getElementById('doseInput').value = '';
+    document.getElementById('flaconHint').textContent = '—';
+    document.getElementById('eauHint').textContent = '—';
+    document.getElementById('resultCard').classList.remove('visible');
+    document.getElementById('customPeptideRow').classList.remove('visible');
+    document.getElementById('customPeptideName').value = '';
+    syringeMax = 50;
+    selectedPeptide = null;
+    currentUnit = 'mg';
+    document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.unit-btn').classList.add('active');
+    document.getElementById('doseUnitTag').textContent = 'mg';
+    document.getElementById('barLabel').textContent = '50 unités max';
+  }
+</script>
+</body>
+</html>
